@@ -19,101 +19,178 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MetricLogger_PushMetric_FullMethodName = "/metrics.MetricLogger/PushMetric"
+	MetricCollectorService_SendMetric_FullMethodName       = "/digestlogger.metrics.MetricCollectorService/SendMetric"
+	MetricCollectorService_SendMetricsBatch_FullMethodName = "/digestlogger.metrics.MetricCollectorService/SendMetricsBatch"
+	MetricCollectorService_HealthCheck_FullMethodName      = "/digestlogger.metrics.MetricCollectorService/HealthCheck"
 )
 
-// MetricLoggerClient is the client API for MetricLogger service.
+// MetricCollectorServiceClient is the client API for MetricCollectorService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type MetricLoggerClient interface {
-	PushMetric(ctx context.Context, in *MetricData, opts ...grpc.CallOption) (*Response, error)
+type MetricCollectorServiceClient interface {
+	SendMetric(ctx context.Context, in *MetricData, opts ...grpc.CallOption) (*MetricResponse, error)
+	SendMetricsBatch(ctx context.Context, in *MetricBatch, opts ...grpc.CallOption) (*MetricBatchResponse, error)
+	HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error)
 }
 
-type metricLoggerClient struct {
+type metricCollectorServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewMetricLoggerClient(cc grpc.ClientConnInterface) MetricLoggerClient {
-	return &metricLoggerClient{cc}
+func NewMetricCollectorServiceClient(cc grpc.ClientConnInterface) MetricCollectorServiceClient {
+	return &metricCollectorServiceClient{cc}
 }
 
-func (c *metricLoggerClient) PushMetric(ctx context.Context, in *MetricData, opts ...grpc.CallOption) (*Response, error) {
+func (c *metricCollectorServiceClient) SendMetric(ctx context.Context, in *MetricData, opts ...grpc.CallOption) (*MetricResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Response)
-	err := c.cc.Invoke(ctx, MetricLogger_PushMetric_FullMethodName, in, out, cOpts...)
+	out := new(MetricResponse)
+	err := c.cc.Invoke(ctx, MetricCollectorService_SendMetric_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// MetricLoggerServer is the server API for MetricLogger service.
-// All implementations must embed UnimplementedMetricLoggerServer
-// for forward compatibility.
-type MetricLoggerServer interface {
-	PushMetric(context.Context, *MetricData) (*Response, error)
-	mustEmbedUnimplementedMetricLoggerServer()
+func (c *metricCollectorServiceClient) SendMetricsBatch(ctx context.Context, in *MetricBatch, opts ...grpc.CallOption) (*MetricBatchResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MetricBatchResponse)
+	err := c.cc.Invoke(ctx, MetricCollectorService_SendMetricsBatch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
-// UnimplementedMetricLoggerServer must be embedded to have
+func (c *metricCollectorServiceClient) HealthCheck(ctx context.Context, in *HealthCheckRequest, opts ...grpc.CallOption) (*HealthCheckResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HealthCheckResponse)
+	err := c.cc.Invoke(ctx, MetricCollectorService_HealthCheck_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// MetricCollectorServiceServer is the server API for MetricCollectorService service.
+// All implementations must embed UnimplementedMetricCollectorServiceServer
+// for forward compatibility.
+type MetricCollectorServiceServer interface {
+	SendMetric(context.Context, *MetricData) (*MetricResponse, error)
+	SendMetricsBatch(context.Context, *MetricBatch) (*MetricBatchResponse, error)
+	HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error)
+	mustEmbedUnimplementedMetricCollectorServiceServer()
+}
+
+// UnimplementedMetricCollectorServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedMetricLoggerServer struct{}
+type UnimplementedMetricCollectorServiceServer struct{}
 
-func (UnimplementedMetricLoggerServer) PushMetric(context.Context, *MetricData) (*Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PushMetric not implemented")
+func (UnimplementedMetricCollectorServiceServer) SendMetric(context.Context, *MetricData) (*MetricResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMetric not implemented")
 }
-func (UnimplementedMetricLoggerServer) mustEmbedUnimplementedMetricLoggerServer() {}
-func (UnimplementedMetricLoggerServer) testEmbeddedByValue()                      {}
+func (UnimplementedMetricCollectorServiceServer) SendMetricsBatch(context.Context, *MetricBatch) (*MetricBatchResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendMetricsBatch not implemented")
+}
+func (UnimplementedMetricCollectorServiceServer) HealthCheck(context.Context, *HealthCheckRequest) (*HealthCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HealthCheck not implemented")
+}
+func (UnimplementedMetricCollectorServiceServer) mustEmbedUnimplementedMetricCollectorServiceServer() {
+}
+func (UnimplementedMetricCollectorServiceServer) testEmbeddedByValue() {}
 
-// UnsafeMetricLoggerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to MetricLoggerServer will
+// UnsafeMetricCollectorServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to MetricCollectorServiceServer will
 // result in compilation errors.
-type UnsafeMetricLoggerServer interface {
-	mustEmbedUnimplementedMetricLoggerServer()
+type UnsafeMetricCollectorServiceServer interface {
+	mustEmbedUnimplementedMetricCollectorServiceServer()
 }
 
-func RegisterMetricLoggerServer(s grpc.ServiceRegistrar, srv MetricLoggerServer) {
-	// If the following call pancis, it indicates UnimplementedMetricLoggerServer was
+func RegisterMetricCollectorServiceServer(s grpc.ServiceRegistrar, srv MetricCollectorServiceServer) {
+	// If the following call pancis, it indicates UnimplementedMetricCollectorServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&MetricLogger_ServiceDesc, srv)
+	s.RegisterService(&MetricCollectorService_ServiceDesc, srv)
 }
 
-func _MetricLogger_PushMetric_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _MetricCollectorService_SendMetric_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MetricData)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(MetricLoggerServer).PushMetric(ctx, in)
+		return srv.(MetricCollectorServiceServer).SendMetric(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: MetricLogger_PushMetric_FullMethodName,
+		FullMethod: MetricCollectorService_SendMetric_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MetricLoggerServer).PushMetric(ctx, req.(*MetricData))
+		return srv.(MetricCollectorServiceServer).SendMetric(ctx, req.(*MetricData))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// MetricLogger_ServiceDesc is the grpc.ServiceDesc for MetricLogger service.
+func _MetricCollectorService_SendMetricsBatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MetricBatch)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricCollectorServiceServer).SendMetricsBatch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MetricCollectorService_SendMetricsBatch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricCollectorServiceServer).SendMetricsBatch(ctx, req.(*MetricBatch))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetricCollectorService_HealthCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricCollectorServiceServer).HealthCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MetricCollectorService_HealthCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricCollectorServiceServer).HealthCheck(ctx, req.(*HealthCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// MetricCollectorService_ServiceDesc is the grpc.ServiceDesc for MetricCollectorService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var MetricLogger_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "metrics.MetricLogger",
-	HandlerType: (*MetricLoggerServer)(nil),
+var MetricCollectorService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "digestlogger.metrics.MetricCollectorService",
+	HandlerType: (*MetricCollectorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "PushMetric",
-			Handler:    _MetricLogger_PushMetric_Handler,
+			MethodName: "SendMetric",
+			Handler:    _MetricCollectorService_SendMetric_Handler,
+		},
+		{
+			MethodName: "SendMetricsBatch",
+			Handler:    _MetricCollectorService_SendMetricsBatch_Handler,
+		},
+		{
+			MethodName: "HealthCheck",
+			Handler:    _MetricCollectorService_HealthCheck_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

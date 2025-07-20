@@ -1,25 +1,97 @@
 syntax = "proto3";
 
-package metrics;
+package digestlogger.metrics;
+
+option java_package = "com.thinkerbell.digestlogger.proto";
+option java_outer_classname = "MetricsProto";
 option go_package = "proto/";
 
+service MetricCollectorService {
+  rpc SendMetric(MetricData) returns (MetricResponse);
+  rpc SendMetricsBatch(MetricBatch) returns (MetricBatchResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
 message MetricData {
-  string metricType = 1;
-  string methodName = 2;
-  string timestamp = 3;
-  double value = 4;
-  repeated string upstreamService = 5;
-  repeated string downstreamService = 6;
-  repeated string upstreamServiceLink = 7;
-  repeated string downstreamServiceLink = 8;
-  string service = 9;
+  string metric_id = 1;
+  int64 timestamp = 2;
+  MetricType metric_type = 3;
+  string service = 4;
+  string operation = 5;
+  int64 latency_ms = 6;
+  bool success = 7;
+  ServiceTopology topology = 8;
+  map<string, string> attributes = 9;
+  ErrorInfo error = 10;
+  map<string, string> metadata = 11;
+  string application = 12;
+  string environment = 13;
+  string version = 14;
 }
 
-service MetricLogger {
-  rpc PushMetric(MetricData) returns (Response);
+enum MetricType {
+  METRIC_TYPE_UNSPECIFIED = 0;
+  METRIC_TYPE_METHOD = 1;
+  METRIC_TYPE_HTTP = 2;
+  METRIC_TYPE_RDS = 3;
+  METRIC_TYPE_REDIS = 4;
+  METRIC_TYPE_HBASE = 5;
+  METRIC_TYPE_CONTROLLER = 6;
+  METRIC_TYPE_GRPC = 7;
+  METRIC_TYPE_KAFKA = 8;
+  METRIC_TYPE_ELASTICSEARCH = 9;
+  METRIC_TYPE_CUSTOM = 10;
 }
 
-message Response {
+message ServiceTopology {
+  repeated string upstream_services = 1;
+  repeated string downstream_services = 2;
+  repeated string upstream_links = 3;
+  repeated string downstream_links = 4;
+  string cluster = 5;
+  string namespace = 6;
+}
+
+message ErrorInfo {
+  string error_type = 1;
+  string error_message = 2;
+  string error_code = 3;
+  string stack_trace = 4;
+  bool retryable = 5;
+}
+
+message MetricBatch {
+  repeated MetricData metrics = 1;
+  string batch_id = 2;
+  int64 batch_timestamp = 3;
+  string source_service = 4;
+}
+
+message MetricResponse {
   bool success = 1;
+  string message = 2;
+  string metric_id = 3;
+}
+
+message MetricBatchResponse {
+  bool success = 1;
+  string message = 2;
+  int32 processed_count = 3;
+  int32 failed_count = 4;
+  repeated string failed_metric_ids = 5;
+}
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  enum ServingStatus {
+    UNKNOWN = 0;
+    SERVING = 1;
+    NOT_SERVING = 2;
+    SERVICE_UNKNOWN = 3;
+  }
+  ServingStatus status = 1;
   string message = 2;
 }

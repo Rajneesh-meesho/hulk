@@ -9,17 +9,47 @@ import (
 )
 
 func PushToVictoriaMetrics(m *proto.MetricData) error {
-	// Join repeated fields with commas
-	upstreamServices := strings.Join(m.UpstreamService, ",")
-	downstreamServices := strings.Join(m.DownstreamService, ",")
-	upstreamServiceLinks := strings.Join(m.UpstreamServiceLink, ",")
-	downstreamServiceLinks := strings.Join(m.DownstreamServiceLink, ",")
+	// Handle timestamp - use provided timestamp or current time
+	var ts int64
+	if m.Timestamp > 0 {
+		ts = m.Timestamp
+	} else {
+		ts = time.Now().Unix() * 1000
+	}
 
+	// Extract topology information
+	var upstreamServices, downstreamServices, upstreamLinks, downstreamLinks string
+	if m.Topology != nil {
+		upstreamServices = strings.Join(m.Topology.UpstreamServices, ",")
+		downstreamServices = strings.Join(m.Topology.DownstreamServices, ",")
+		upstreamLinks = strings.Join(m.Topology.UpstreamLinks, ",")
+		downstreamLinks = strings.Join(m.Topology.DownstreamLinks, ",")
+	}
+
+	// Convert MetricType enum to string
+	metricTypeStr := m.MetricType.String()
+
+	// Build attributes string from map
+	var attributesStr []string
+	for key, value := range m.Attributes {
+		attributesStr = append(attributesStr, fmt.Sprintf("%s=%s", key, value))
+	}
+	attributes := strings.Join(attributesStr, ",")
+
+	// Build metadata string from map
+	var metadataStr []string
+	for key, value := range m.Metadata {
+		metadataStr = append(metadataStr, fmt.Sprintf("%s=%s", key, value))
+	}
+	metadata := strings.Join(metadataStr, ",")
+
+	// Create Prometheus line with comprehensive labels
 	line := fmt.Sprintf(
-		`digest_logger{metricType="%s",method="%s",upstreamService="%s",downstreamService="%s",upstreamServiceLink="%s",downstreamServiceLink="%s",service="%s"} %f %d`,
-		m.MetricType, m.MethodName, upstreamServices, downstreamServices,
-		upstreamServiceLinks, downstreamServiceLinks, m.Service,
-		m.Value, time.Now().Unix()*1000,
+		`digest_logger{metric_id="%s",metric_type="%s",service="%s",operation="%s",success="%t",upstream_services="%s",downstream_services="%s",upstream_links="%s",downstream_links="%s",application="%s",environment="%s",version="%s",attributes="%s",metadata="%s"} %d %d`,
+		m.MetricId, metricTypeStr, m.Service, m.Operation, m.Success,
+		upstreamServices, downstreamServices, upstreamLinks, downstreamLinks,
+		m.Application, m.Environment, m.Version, attributes, metadata,
+		m.LatencyMs, ts,
 	)
 
 	body := strings.NewReader(line)

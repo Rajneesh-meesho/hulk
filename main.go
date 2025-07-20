@@ -17,7 +17,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterMetricLoggerServer(grpcServer, &server.MetricService{})
+	pb.RegisterMetricCollectorServiceServer(grpcServer, &server.MetricCollectorServer{})
 	reflection.Register(grpcServer)
 
 	log.Println("gRPC server running on port :50051")
