@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package metrics;
+option go_package = "proto/";
+
+message MetricData {
+  string metricType = 1;
+  string methodName = 2;
+  string timestamp = 3;
+  double value = 4;
+  repeated string upstreamService = 5;
+  repeated string downstreamService = 6;
+  repeated string upstreamServiceLink = 7;
+  repeated string downstreamServiceLink = 8;
+  string service = 9;
+}
+
+service MetricLogger {
+  rpc PushMetric(MetricData) returns (Response);
+}
+
+message Response {
+  bool success = 1;
+  string message = 2;
+}
