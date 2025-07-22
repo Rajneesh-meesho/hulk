@@ -32,8 +32,9 @@ type TopologyData struct {
 	ServiceCounter  int `json:"service_counter"`
 	EndpointCounter int `json:"endpoint_counter"`
 
-	// Mutex for thread safety
-	mutex sync.RWMutex `json:"-"`
+	// Change tracking (not serialized to JSON)
+	hasChanges bool         `json:"-"`
+	mutex      sync.RWMutex `json:"-"`
 }
 
 // NewTopologyData creates a new instance of TopologyData
@@ -48,7 +49,27 @@ func NewTopologyData() *TopologyData {
 		ParentCollection:   make(map[int][]int),
 		ServiceCounter:     1,
 		EndpointCounter:    1,
+		hasChanges:         false,
 	}
+}
+
+// markChanged marks that the data has been modified
+func (td *TopologyData) markChanged() {
+	td.hasChanges = true
+}
+
+// HasChanges returns true if data has been modified since last save
+func (td *TopologyData) HasChanges() bool {
+	td.mutex.RLock()
+	defer td.mutex.RUnlock()
+	return td.hasChanges
+}
+
+// MarkSaved marks that the data has been saved (clears change flag)
+func (td *TopologyData) MarkSaved() {
+	td.mutex.Lock()
+	defer td.mutex.Unlock()
+	td.hasChanges = false
 }
 
 // GetServiceID gets or creates an ID for a service name
@@ -64,6 +85,7 @@ func (td *TopologyData) GetServiceID(serviceName string) int {
 	td.ServiceCollection[serviceName] = id
 	td.ServiceReverse[id] = serviceName
 	td.ServiceCounter++
+	td.markChanged() // Mark that data has changed
 	return id
 }
 
@@ -80,6 +102,7 @@ func (td *TopologyData) GetEndpointID(endpointName string) int {
 	td.EndpointCollection[endpointName] = id
 	td.EndpointReverse[id] = endpointName
 	td.EndpointCounter++
+	td.markChanged() // Mark that data has changed
 	return id
 }
 
@@ -98,11 +121,17 @@ func (td *TopologyData) AddToEndpointMapping(serviceID int, upstreamLinkIDs []in
 		existingMap[id] = true
 	}
 
+	changed := false
 	for _, linkID := range upstreamLinkIDs {
 		if !existingMap[linkID] {
 			td.EndpointMapping[serviceID] = append(td.EndpointMapping[serviceID], linkID)
 			existingMap[linkID] = true
+			changed = true
 		}
+	}
+
+	if changed {
+		td.markChanged()
 	}
 }
 
@@ -111,6 +140,7 @@ func (td *TopologyData) AddToConnectionGraph(upstreamServiceIDs, downstreamServi
 	td.mutex.Lock()
 	defer td.mutex.Unlock()
 
+	changed := false
 	for _, usID := range upstreamServiceIDs {
 		if td.ConnectionGraph[usID] == nil {
 			td.ConnectionGraph[usID] = make(map[int][]int)
@@ -135,9 +165,14 @@ func (td *TopologyData) AddToConnectionGraph(upstreamServiceIDs, downstreamServi
 
 				if !exists {
 					td.ConnectionGraph[usID][dsID] = append(td.ConnectionGraph[usID][dsID], dlID)
+					changed = true
 				}
 			}
 		}
+	}
+
+	if changed {
+		td.markChanged()
 	}
 }
 
@@ -146,6 +181,7 @@ func (td *TopologyData) AddToParentCollection(upstreamLinkIDs, downstreamLinkIDs
 	td.mutex.Lock()
 	defer td.mutex.Unlock()
 
+	changed := false
 	for _, dlID := range downstreamLinkIDs {
 		if td.ParentCollection[dlID] == nil {
 			td.ParentCollection[dlID] = make([]int, 0)
@@ -162,8 +198,13 @@ func (td *TopologyData) AddToParentCollection(upstreamLinkIDs, downstreamLinkIDs
 			if !existingMap[ulID] {
 				td.ParentCollection[dlID] = append(td.ParentCollection[dlID], ulID)
 				existingMap[ulID] = true
+				changed = true
 			}
 		}
+	}
+
+	if changed {
+		td.markChanged()
 	}
 }
 
@@ -203,5 +244,9 @@ func (td *TopologyData) SaveToFile(filename string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(filename, data, 0644)
+	err = ioutil.WriteFile(filename, data, 0644)
+	if err == nil {
+		td.MarkSaved() // Clear change flag after successful save
+	}
+	return err
 }

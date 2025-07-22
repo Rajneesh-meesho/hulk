@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// TopologyManager manages the topology processor and handles periodic persistence
+// TopologyManager manages the topology processor and handles change-based persistence
 type TopologyManager struct {
-	processor    *TopologyProcessor
-	filename     string
-	saveInterval time.Duration
-	mutex        sync.RWMutex
-	stopChan     chan bool
-	isRunning    bool
+	processor     *TopologyProcessor
+	filename      string
+	checkInterval time.Duration // How often to check for changes
+	mutex         sync.RWMutex
+	stopChan      chan bool
+	isRunning     bool
 }
 
 var (
@@ -26,17 +26,17 @@ var (
 func GetInstance() *TopologyManager {
 	once.Do(func() {
 		instance = &TopologyManager{
-			processor:    NewTopologyProcessor(),
-			filename:     "connection.json",
-			saveInterval: 1 * time.Second, // Save every 1 seconds
-			stopChan:     make(chan bool),
-			isRunning:    false,
+			processor:     NewTopologyProcessor(),
+			filename:      "connection.json",
+			checkInterval: 5 * time.Second, // Check for changes every 5 seconds
+			stopChan:      make(chan bool),
+			isRunning:     false,
 		}
 	})
 	return instance
 }
 
-// Start starts the topology manager with periodic saving
+// Start starts the topology manager with change-based saving
 func (tm *TopologyManager) Start() error {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
@@ -52,10 +52,10 @@ func (tm *TopologyManager) Start() error {
 
 	tm.isRunning = true
 
-	// Start periodic saving goroutine
-	go tm.periodicSave()
+	// Start change-checking goroutine
+	go tm.changeBasedSave()
 
-	log.Printf("Topology manager started, saving to %s every %v", tm.filename, tm.saveInterval)
+	log.Printf("Topology manager started with change-based saving, checking for changes every %v", tm.checkInterval)
 	return nil
 }
 
@@ -99,25 +99,37 @@ func (tm *TopologyManager) ProcessMetric(metric *proto.MetricData) {
 		log.Printf("TopologyManager: Data updated - Services: %d, Endpoints: %d",
 			len(dataAfter.ServiceCollection), len(dataAfter.EndpointCollection))
 	}
+
+	// Check if we should save immediately due to significant changes
+	if dataAfter.HasChanges() {
+		log.Printf("TopologyManager: Changes detected, will save on next check cycle")
+	}
 }
 
-// periodicSave handles periodic saving of topology data
-func (tm *TopologyManager) periodicSave() {
-	ticker := time.NewTicker(tm.saveInterval)
+// changeBasedSave handles checking for changes and saving only when needed
+func (tm *TopologyManager) changeBasedSave() {
+	ticker := time.NewTicker(tm.checkInterval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
 			data := tm.processor.GetTopologyData()
-			serviceCount := len(data.ServiceCollection)
-			endpointCount := len(data.EndpointCollection)
 
-			if err := tm.processor.SaveToFile(tm.filename); err != nil {
-				log.Printf("Error saving topology data: %v", err)
-			} else {
-				log.Printf("Topology data saved to %s - Services: %d, Endpoints: %d, Mappings: %d",
-					tm.filename, serviceCount, endpointCount, len(data.EndpointMapping))
+			// Only save if there are changes
+			if data.HasChanges() {
+				serviceCount := len(data.ServiceCollection)
+				endpointCount := len(data.EndpointCollection)
+				graphCount := len(data.ConnectionGraph)
+				parentCount := len(data.ParentCollection)
+
+				if err := tm.processor.SaveToFile(tm.filename); err != nil {
+					log.Printf("Error saving topology data: %v", err)
+				} else {
+					data.MarkSaved() // Clear the change flag
+					log.Printf("Topology data saved to %s - Services: %d, Endpoints: %d, Graphs: %d, Parents: %d",
+						tm.filename, serviceCount, endpointCount, graphCount, parentCount)
+				}
 			}
 		case <-tm.stopChan:
 			return
@@ -130,11 +142,11 @@ func (tm *TopologyManager) GetTopologyData() *TopologyData {
 	return tm.processor.GetTopologyData()
 }
 
-// SetSaveInterval sets the interval for periodic saving
-func (tm *TopologyManager) SetSaveInterval(interval time.Duration) {
+// SetCheckInterval sets the interval for checking changes
+func (tm *TopologyManager) SetCheckInterval(interval time.Duration) {
 	tm.mutex.Lock()
 	defer tm.mutex.Unlock()
-	tm.saveInterval = interval
+	tm.checkInterval = interval
 }
 
 // SetFilename sets the filename for saving topology data
