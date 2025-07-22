@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"hulk/proto/proto"
+	"hulk/proto"
 	"net/http"
 	"strings"
 	"time"
@@ -45,10 +45,10 @@ func PushToVictoriaMetrics(m *proto.MetricData) error {
 
 	// Create Prometheus line with comprehensive labels
 	line := fmt.Sprintf(
-		`digest_logger{metric_id="%s",metric_type="%s",service="%s",operation="%s",success="%t",upstream_services="%s",downstream_services="%s",upstream_links="%s",downstream_links="%s",application="%s",environment="%s",version="%s",attributes="%s",metadata="%s"} %d %d`,
+		`digest_logger{metric_id="%s",metric_type="%s",service="%s",operation="%s",success="%t",upstream_services="%s",downstream_services="%s",upstream_links="%s",downstream_links="%s",application="%s",environment="%s",version="%s",endpoint="%s",attributes="%s",metadata="%s"} %d %d`,
 		m.MetricId, metricTypeStr, m.Service, m.Operation, m.Success,
 		upstreamServices, downstreamServices, upstreamLinks, downstreamLinks,
-		m.Application, m.Environment, m.Version, attributes, metadata,
+		m.Application, m.Environment, m.Version, m.Endpoint, attributes, metadata,
 		m.LatencyMs, ts,
 	)
 

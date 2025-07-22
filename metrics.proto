@@ -27,6 +27,7 @@ message MetricData {
   string application = 12;
   string environment = 13;
   string version = 14;
+  string endpoint = 15;
 }
 
 enum MetricType {

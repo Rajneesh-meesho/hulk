@@ -3,7 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
-	"hulk/proto/proto"
+	"hulk/proto"
 	"log"
 )
 
@@ -44,7 +44,7 @@ func (s *MetricCollectorServer) SendMetricsBatch(ctx context.Context, in *proto.
 			failedMetricIds = append(failedMetricIds, metric.MetricId)
 			log.Printf("Failed to process metric %s: %v", metric.MetricId, err)
 		} else {
-			log.Printf("metric %s",metric)
+			log.Printf("metric %s", metric)
 			processedCount++
 		}
 	}

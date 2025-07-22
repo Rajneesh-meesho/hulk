@@ -1,7 +1,7 @@
 package main
 
 import (
-	pb "hulk/proto/proto"
+	pb "hulk/proto"
 	"hulk/server"
 	"log"
 	"net"
