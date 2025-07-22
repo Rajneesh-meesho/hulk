@@ -1,0 +1,30 @@
+{
+  "service_collection": {
+    "a": 2,
+    "b": 1
+  },
+  "service_reverse": {
+    "1": "b",
+    "2": "a"
+  },
+  "endpoint_collection": {
+    "a.com/test": 2,
+    "b.com/test": 1
+  },
+  "endpoint_reverse": {
+    "1": "b.com/test",
+    "2": "a.com/test"
+  },
+  "endpoint_mapping": {
+    "1": [
+      1
+    ],
+    "2": [
+      2
+    ]
+  },
+  "connection_graph": {},
+  "parent_collection": {},
+  "service_counter": 3,
+  "endpoint_counter": 3
+}

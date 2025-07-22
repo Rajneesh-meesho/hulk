@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hulk/proto"
+	walle "hulk/wall-e"
 	"log"
 )
 
@@ -13,6 +14,9 @@ type MetricCollectorServer struct {
 
 func (s *MetricCollectorServer) SendMetric(ctx context.Context, in *proto.MetricData) (*proto.MetricResponse, error) {
 	log.Printf("Received metric: %+v", in)
+
+	// Process topology data with wall-e
+	walle.GetInstance().ProcessMetric(in)
 
 	err := PushToVictoriaMetrics(in)
 	if err != nil {
@@ -38,6 +42,9 @@ func (s *MetricCollectorServer) SendMetricsBatch(ctx context.Context, in *proto.
 	var failedMetricIds []string
 
 	for _, metric := range in.Metrics {
+		// Process topology data with wall-e
+		walle.GetInstance().ProcessMetric(metric)
+
 		err := PushToVictoriaMetrics(metric)
 		if err != nil {
 			failedCount++
