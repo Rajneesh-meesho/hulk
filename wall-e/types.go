@@ -73,12 +73,13 @@ func (td *TopologyData) MarkSaved() {
 }
 
 // GetServiceID gets or creates an ID for a service name
-func (td *TopologyData) GetServiceID(serviceName string) int {
+// Returns (id, wasNewlyCreated)
+func (td *TopologyData) GetServiceID(serviceName string) (int, bool) {
 	td.mutex.Lock()
 	defer td.mutex.Unlock()
 
 	if id, exists := td.ServiceCollection[serviceName]; exists {
-		return id
+		return id, false
 	}
 
 	id := td.ServiceCounter
@@ -86,16 +87,17 @@ func (td *TopologyData) GetServiceID(serviceName string) int {
 	td.ServiceReverse[id] = serviceName
 	td.ServiceCounter++
 	td.markChanged() // Mark that data has changed
-	return id
+	return id, true
 }
 
 // GetEndpointID gets or creates an ID for an endpoint/link name
-func (td *TopologyData) GetEndpointID(endpointName string) int {
+// Returns (id, wasNewlyCreated)
+func (td *TopologyData) GetEndpointID(endpointName string) (int, bool) {
 	td.mutex.Lock()
 	defer td.mutex.Unlock()
 
 	if id, exists := td.EndpointCollection[endpointName]; exists {
-		return id
+		return id, false
 	}
 
 	id := td.EndpointCounter
@@ -103,7 +105,7 @@ func (td *TopologyData) GetEndpointID(endpointName string) int {
 	td.EndpointReverse[id] = endpointName
 	td.EndpointCounter++
 	td.markChanged() // Mark that data has changed
-	return id
+	return id, true
 }
 
 // AddToEndpointMapping adds upstream links to service mapping

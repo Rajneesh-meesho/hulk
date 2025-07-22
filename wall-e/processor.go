@@ -57,8 +57,10 @@ func (tp *TopologyProcessor) ProcessMetric(metric *proto.MetricData) {
 
 		// Also add the current metric's service to service collection
 		if metric.Service != "" {
-			tp.data.GetServiceID(metric.Service)
-			log.Printf("Added current service '%s' to collection", metric.Service)
+			_, isNew := tp.data.GetServiceID(metric.Service)
+			if isNew {
+				log.Printf("Added NEW service '%s' to collection", metric.Service)
+			}
 		}
 
 		// Process endpoint mappings if we have any links
@@ -82,8 +84,10 @@ func (tp *TopologyProcessor) ProcessMetric(metric *proto.MetricData) {
 		}
 
 		if metric.Service != "" {
-			tp.data.GetServiceID(metric.Service)
-			log.Printf("Added current service '%s' to collection", metric.Service)
+			_, isNew := tp.data.GetServiceID(metric.Service)
+			if isNew {
+				log.Printf("Added NEW service '%s' to collection", metric.Service)
+			}
 		}
 
 		if hasUpstreamLinks || hasDownstreamLinks {
@@ -103,14 +107,14 @@ func (tp *TopologyProcessor) processServiceMappings(upstreamServices, downstream
 	// Process upstream services
 	for _, service := range upstreamServices {
 		if service != "" {
-			tp.data.GetServiceID(service)
+			_, _ = tp.data.GetServiceID(service)
 		}
 	}
 
 	// Process downstream services
 	for _, service := range downstreamServices {
 		if service != "" {
-			tp.data.GetServiceID(service)
+			_, _ = tp.data.GetServiceID(service)
 		}
 	}
 }
@@ -120,14 +124,14 @@ func (tp *TopologyProcessor) processEndpointMappings(upstreamLinks, downstreamLi
 	// Process upstream links
 	for _, link := range upstreamLinks {
 		if link != "" {
-			tp.data.GetEndpointID(link)
+			_, _ = tp.data.GetEndpointID(link)
 		}
 	}
 
 	// Process downstream links
 	for _, link := range downstreamLinks {
 		if link != "" {
-			tp.data.GetEndpointID(link)
+			_, _ = tp.data.GetEndpointID(link)
 		}
 	}
 }
@@ -138,12 +142,12 @@ func (tp *TopologyProcessor) processServiceToLinksMapping(serviceName string, up
 		return
 	}
 
-	serviceID := tp.data.GetServiceID(serviceName)
+	serviceID, _ := tp.data.GetServiceID(serviceName)
 
 	var upstreamLinkIDs []int
 	for _, link := range upstreamLinks {
 		if link != "" {
-			linkID := tp.data.GetEndpointID(link)
+			linkID, _ := tp.data.GetEndpointID(link)
 			upstreamLinkIDs = append(upstreamLinkIDs, linkID)
 		}
 	}
@@ -163,7 +167,7 @@ func (tp *TopologyProcessor) processConnectionGraph(upstreamServices, downstream
 	var upstreamServiceIDs []int
 	for _, service := range upstreamServices {
 		if service != "" {
-			serviceID := tp.data.GetServiceID(service)
+			serviceID, _ := tp.data.GetServiceID(service)
 			upstreamServiceIDs = append(upstreamServiceIDs, serviceID)
 		}
 	}
@@ -171,7 +175,7 @@ func (tp *TopologyProcessor) processConnectionGraph(upstreamServices, downstream
 	var downstreamServiceIDs []int
 	for _, service := range downstreamServices {
 		if service != "" {
-			serviceID := tp.data.GetServiceID(service)
+			serviceID, _ := tp.data.GetServiceID(service)
 			downstreamServiceIDs = append(downstreamServiceIDs, serviceID)
 		}
 	}
@@ -180,7 +184,7 @@ func (tp *TopologyProcessor) processConnectionGraph(upstreamServices, downstream
 	var downstreamLinkIDs []int
 	for _, link := range downstreamLinks {
 		if link != "" {
-			linkID := tp.data.GetEndpointID(link)
+			linkID, _ := tp.data.GetEndpointID(link)
 			downstreamLinkIDs = append(downstreamLinkIDs, linkID)
 		}
 	}
@@ -200,7 +204,7 @@ func (tp *TopologyProcessor) processParentCollection(upstreamLinks, downstreamLi
 	var upstreamLinkIDs []int
 	for _, link := range upstreamLinks {
 		if link != "" {
-			linkID := tp.data.GetEndpointID(link)
+			linkID, _ := tp.data.GetEndpointID(link)
 			upstreamLinkIDs = append(upstreamLinkIDs, linkID)
 		}
 	}
@@ -209,7 +213,7 @@ func (tp *TopologyProcessor) processParentCollection(upstreamLinks, downstreamLi
 	var downstreamLinkIDs []int
 	for _, link := range downstreamLinks {
 		if link != "" {
-			linkID := tp.data.GetEndpointID(link)
+			linkID, _ := tp.data.GetEndpointID(link)
 			downstreamLinkIDs = append(downstreamLinkIDs, linkID)
 		}
 	}
@@ -235,13 +239,13 @@ func (tp *TopologyProcessor) processConnectionGraphSmart(currentService string, 
 	if len(upstreamServices) > 0 && len(upstreamLinks) > 0 && currentService != "" {
 		log.Printf("Inferring connection: upstream services -> current service")
 
-		currentServiceID := tp.data.GetServiceID(currentService)
+		currentServiceID, _ := tp.data.GetServiceID(currentService)
 
 		// Convert upstream service names to IDs
 		var upstreamServiceIDs []int
 		for _, service := range upstreamServices {
 			if service != "" {
-				serviceID := tp.data.GetServiceID(service)
+				serviceID, _ := tp.data.GetServiceID(service)
 				upstreamServiceIDs = append(upstreamServiceIDs, serviceID)
 			}
 		}
@@ -250,7 +254,7 @@ func (tp *TopologyProcessor) processConnectionGraphSmart(currentService string, 
 		var upstreamLinkIDs []int
 		for _, link := range upstreamLinks {
 			if link != "" {
-				linkID := tp.data.GetEndpointID(link)
+				linkID, _ := tp.data.GetEndpointID(link)
 				upstreamLinkIDs = append(upstreamLinkIDs, linkID)
 			}
 		}
@@ -289,13 +293,13 @@ func (tp *TopologyProcessor) processConnectionGraphSmart(currentService string, 
 	if len(downstreamServices) > 0 && len(downstreamLinks) > 0 && currentService != "" {
 		log.Printf("Inferring connection: current service -> downstream services")
 
-		currentServiceID := tp.data.GetServiceID(currentService)
+		currentServiceID, _ := tp.data.GetServiceID(currentService)
 
 		// Convert downstream service names to IDs
 		var downstreamServiceIDs []int
 		for _, service := range downstreamServices {
 			if service != "" {
-				serviceID := tp.data.GetServiceID(service)
+				serviceID, _ := tp.data.GetServiceID(service)
 				downstreamServiceIDs = append(downstreamServiceIDs, serviceID)
 			}
 		}
@@ -304,7 +308,7 @@ func (tp *TopologyProcessor) processConnectionGraphSmart(currentService string, 
 		var downstreamLinkIDs []int
 		for _, link := range downstreamLinks {
 			if link != "" {
-				linkID := tp.data.GetEndpointID(link)
+				linkID, _ := tp.data.GetEndpointID(link)
 				downstreamLinkIDs = append(downstreamLinkIDs, linkID)
 			}
 		}
@@ -359,7 +363,7 @@ func (tp *TopologyProcessor) processParentCollectionSmart(upstreamLinks, downstr
 		var upstreamLinkIDs []int
 		for _, link := range upstreamLinks {
 			if link != "" {
-				linkID := tp.data.GetEndpointID(link)
+				linkID, _ := tp.data.GetEndpointID(link)
 				upstreamLinkIDs = append(upstreamLinkIDs, linkID)
 			}
 		}
@@ -380,7 +384,7 @@ func (tp *TopologyProcessor) processParentCollectionSmart(upstreamLinks, downstr
 		var downstreamLinkIDs []int
 		for _, link := range downstreamLinks {
 			if link != "" {
-				linkID := tp.data.GetEndpointID(link)
+				linkID, _ := tp.data.GetEndpointID(link)
 				downstreamLinkIDs = append(downstreamLinkIDs, linkID)
 			}
 		}
